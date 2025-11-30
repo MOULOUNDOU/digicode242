@@ -1,11 +1,435 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Service client Digicode.</title>
-</head>
-<body>
-    <h1>Service client Digicode.</h1>
-</body>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Digicode Studio - Votre chanson en 5 min</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "react": "https://aistudiocdn.com/react@^19.2.0"
+  }
+}
+</script>
+    <style>
+      body { font-family: 'Inter', sans-serif; }
+      
+      /* Utilities */
+      .scrollbar-hide::-webkit-scrollbar { display: none; }
+      .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+      
+      /* Animations */
+      .animate-blob { animation: blob 7s infinite; }
+      @keyframes blob {
+        0% { transform: translate(0px, 0px) scale(1); }
+        33% { transform: translate(30px, -50px) scale(1.1); }
+        66% { transform: translate(-20px, 20px) scale(0.9); }
+        100% { transform: translate(0px, 0px) scale(1); }
+      }
+      .animation-delay-2000 { animation-delay: 2s; }
+      .animation-delay-4000 { animation-delay: 4s; }
+
+      .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+      @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+      /* View Switching */
+      .hidden { display: none !important; }
+    </style>
+    <script>
+        // Fonction de navigation définie immédiatement pour garantir que les boutons fonctionnent
+        window.switchView = function(viewName) {
+            console.log("Navigation vers :", viewName);
+            const home = document.getElementById('view-home');
+            const chat = document.getElementById('view-chat');
+            const mobileMenu = document.getElementById('mobile-menu');
+            
+            if (mobileMenu && !mobileMenu.classList.contains('hidden')) {
+                mobileMenu.classList.add('hidden');
+            }
+
+            if (viewName === 'chat') {
+                home.classList.add('hidden');
+                chat.classList.remove('hidden');
+                // On déclenche un événement personnalisé pour dire au module JS d'initialiser le chat
+                window.dispatchEvent(new CustomEvent('viewChanged', { detail: 'chat' }));
+            } else {
+                chat.classList.add('hidden');
+                home.classList.remove('hidden');
+            }
+            window.scrollTo(0, 0);
+        };
+    </script>
+  </head>
+  <body class="bg-slate-950 text-slate-50 antialiased selection:bg-pink-500/30">
+
+    <!-- HEADER -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-slate-950/80 backdrop-blur-md border-b border-slate-800">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-16">
+          <!-- Logo -->
+          <div class="flex items-center cursor-pointer group" onclick="switchView('home')">
+            <div class="bg-gradient-to-br from-pink-500 to-purple-600 p-2 rounded-lg group-hover:from-pink-400 group-hover:to-purple-500 transition-all">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            </div>
+            <span class="ml-3 text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-pink-200">
+              Digicode musique
+            </span>
+          </div>
+
+          <!-- Desktop Nav -->
+          <nav class="hidden md:flex items-center space-x-8">
+            <button onclick="switchView('home')" class="text-sm font-medium text-white hover:text-pink-400 transition-colors">Accueil</button>
+            <a href="#how-it-works" onclick="switchView('home')" class="text-sm font-medium text-slate-400 hover:text-pink-400 transition-colors">Comment ça marche</a>
+            
+            <button onclick="switchView('chat')" class="flex items-center space-x-2 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white px-5 py-2 rounded-full transition-all transform hover:scale-105 shadow-lg shadow-pink-500/20">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 8-9.04 9.06a2.82 2.82 0 1 0 3.98 3.98L16 12"/><circle cx="17" cy="7" r="5"/></svg>
+              <span>Créer ma chanson</span>
+            </button>
+          </nav>
+          
+           <!-- Mobile Menu Button -->
+           <div class="md:hidden">
+            <button onclick="document.getElementById('mobile-menu').classList.toggle('hidden')" class="text-slate-300 hover:text-white p-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      <!-- Mobile Menu -->
+      <div id="mobile-menu" class="hidden md:hidden bg-slate-900 border-b border-slate-800 px-4 py-4 space-y-4">
+          <button onclick="switchView('home')" class="block w-full text-left text-slate-300 hover:text-white font-medium">Accueil</button>
+          <button onclick="switchView('chat')" class="block w-full text-left text-pink-400 font-medium">Commander un son (2500F)</button>
+      </div>
+    </header>
+
+    <main class="pt-16 min-h-screen">
+      
+      <!-- HOME VIEW -->
+      <div id="view-home" class="fade-in">
+        <!-- Hero Section -->
+        <div class="relative pt-24 pb-16 sm:pt-32 sm:pb-24 overflow-hidden">
+          <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl pointer-events-none opacity-30">
+             <div class="absolute top-20 left-10 w-72 h-72 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob"></div>
+             <div class="absolute top-20 right-10 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000"></div>
+             <div class="absolute -bottom-8 left-20 w-72 h-72 bg-orange-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-4000"></div>
+          </div>
+
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+            <div class="inline-block mb-6 px-4 py-1.5 rounded-full bg-slate-900/60 border border-pink-500/30 backdrop-blur-md">
+              <span class="text-pink-400 font-medium text-sm">🔥 Offre Spéciale : Votre son en 5 minutes</span>
+            </div>
+            
+            <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight text-white mb-6">
+              Votre chanson personnalisée <br />
+              <span class="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-500 to-orange-400">
+                pour seulement 2500 FCFA
+              </span>
+            </h1>
+            
+            <p class="max-w-2xl mx-auto text-lg sm:text-xl text-slate-300 mb-10">
+              Envie d'un Rap, Love, ou Mbalax ? Donnez-nous les infos, payez par Wave/Orange Money, et recevez votre hit instantanément.
+            </p>
+
+            <button onclick="switchView('chat')" class="inline-flex items-center justify-center px-8 py-4 border border-transparent text-base font-bold rounded-xl text-white bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 md:text-lg transition-all shadow-lg shadow-pink-500/30 hover:scale-105 active:scale-95">
+              <svg xmlns="http://www.w3.org/2000/svg" class="mr-2 h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+              Commander maintenant
+            </button>
+          </div>
+        </div>
+
+        <!-- Features Grid -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
+            <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 backdrop-blur-sm">
+              <div class="w-14 h-14 bg-pink-900/30 rounded-2xl flex items-center justify-center mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-pink-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <h3 class="text-xl font-bold text-white mb-2">Prêt en 5 Minutes</h3>
+              <p class="text-slate-400">Technologie rapide. Pas d'attente.</p>
+            </div>
+            <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 backdrop-blur-sm">
+              <div class="w-14 h-14 bg-purple-900/30 rounded-2xl flex items-center justify-center mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-purple-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+              </div>
+              <h3 class="text-xl font-bold text-white mb-2">Tous Styles</h3>
+              <p class="text-slate-400">Rap, RnB, Mbalax, Afrobeat, Drill...</p>
+            </div>
+            <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 backdrop-blur-sm">
+              <div class="w-14 h-14 bg-orange-900/30 rounded-2xl flex items-center justify-center mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+              </div>
+              <h3 class="text-xl font-bold text-white mb-2">2500 FCFA Simple</h3>
+              <p class="text-slate-400">Paiement Wave ou Orange Money.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- How It Works -->
+        <div id="how-it-works" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-t border-slate-800">
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+              <div class="space-y-8">
+                 <h2 class="text-3xl font-bold text-white">Comment ça marche ?</h2>
+                 <div class="flex gap-4">
+                    <div class="flex-shrink-0 h-12 w-12 rounded-full bg-pink-900/30 flex items-center justify-center border border-pink-500/30">
+                       <span class="text-pink-400 font-bold">1</span>
+                    </div>
+                    <div><h4 class="text-xl font-bold text-white">Discutez avec le Chatbot</h4><p class="text-slate-400">Donnez vos infos.</p></div>
+                 </div>
+                 <div class="flex gap-4">
+                    <div class="flex-shrink-0 h-12 w-12 rounded-full bg-purple-900/30 flex items-center justify-center border border-purple-500/30">
+                       <span class="text-purple-400 font-bold">2</span>
+                    </div>
+                    <div><h4 class="text-xl font-bold text-white">Payez 2500 FCFA</h4><p class="text-slate-400">Au <strong>+221 77 726 94 84</strong>.</p></div>
+                 </div>
+                 <div class="flex gap-4">
+                    <div class="flex-shrink-0 h-12 w-12 rounded-full bg-emerald-900/30 flex items-center justify-center border border-emerald-500/30">
+                       <span class="text-emerald-400 font-bold">3</span>
+                    </div>
+                    <div><h4 class="text-xl font-bold text-white">Recevez votre son</h4><p class="text-slate-400">Envoyé sur WhatsApp en 5 min.</p></div>
+                 </div>
+              </div>
+              <div class="relative">
+                 <div class="absolute inset-0 bg-gradient-to-tr from-pink-600 to-purple-600 blur-[100px] opacity-20 rounded-full"></div>
+                 <img src="https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=1000&auto=format&fit=crop" class="relative rounded-2xl w-full border border-slate-700 shadow-2xl" alt="Studio">
+              </div>
+           </div>
+        </div>
+
+        <footer class="bg-slate-900 border-t border-slate-800 py-12 text-center text-slate-500">
+           &copy; 2025 Digicode Studio. <br> Service client Digicode : +221 77 726 94 84
+        </footer>
+      </div>
+
+      <!-- CHAT VIEW -->
+      <div id="view-chat" class="hidden fade-in h-[calc(100vh-5rem)] max-w-5xl mx-auto pt-4 pb-4 px-2 sm:px-6 flex flex-col">
+        
+        <!-- Messages Area -->
+        <div id="chat-container" class="flex-1 overflow-y-auto scrollbar-hide p-4 rounded-3xl bg-slate-900/50 border border-slate-800 mb-4 backdrop-blur-sm">
+           <!-- Initial Message will be inserted by JS -->
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex gap-2 mb-2 px-1">
+          <button onclick="sendToWhatsApp()" class="flex-1 bg-green-600 hover:bg-green-500 text-white py-2 px-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95">
+             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+             Envoyer sur WhatsApp
+          </button>
+          <button onclick="sendToEmail()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 py-2 px-4 rounded-xl flex items-center justify-center transition-all active:scale-95">
+             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          </button>
+        </div>
+
+        <!-- Input Area -->
+        <div class="relative">
+          <div class="bg-slate-800 rounded-2xl p-2 flex items-end shadow-xl border border-slate-700 focus-within:ring-2 focus-within:ring-pink-500 transition-all">
+            <textarea id="chat-input" placeholder="Ex: Je veux un son rap pour l'anniversaire de mon pote..." class="w-full bg-transparent text-white placeholder-slate-400 p-3 max-h-32 min-h-[50px] resize-none focus:outline-none text-base" rows="1"></textarea>
+            <button id="send-btn" onclick="handleSend()" class="p-3 rounded-xl mb-1 mr-1 bg-gradient-to-br from-pink-600 to-purple-600 text-white shadow-lg transition-all hover:scale-105 active:scale-95">
+               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- LOGIC -->
+    <script type="module">
+      import { GoogleGenAI } from "@google/genai";
+
+      // --- CONFIGURATION API KEY ---
+      const API_KEY = "AIzaSyA-ze20p9LfqyBLcJuKDr8gW8Vjol6JG98"; 
+
+      // --- LOGIQUE UI GLOBALE ---
+      
+      let messageHistory = [];
+      let isProcessing = false;
+      let chatSession = null;
+
+      // Écouter l'événement de changement de vue pour initialiser le chat
+      window.addEventListener('viewChanged', (e) => {
+         if (e.detail === 'chat' && messageHistory.length === 0) {
+            addMessage("model", "👋 Salut ! Bienvenue chez **Digicode Studio**. \n\nJe crée ta chanson en 5 minutes pour 2500 FCFA. \n\nC'est quoi ton style ? (Rap, Love, Mbalax...)");
+         }
+      });
+
+      function addMessage(role, text) {
+        messageHistory.push({ role, text });
+        const isBot = role === 'model';
+        const chatContainer = document.getElementById('chat-container');
+        
+        const div = document.createElement('div');
+        div.className = `flex w-full ${isBot ? 'justify-start' : 'justify-end'} mb-6`;
+        
+        let formattedText = text
+           .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+           .replace(/\n/g, '<br>');
+
+        div.innerHTML = `
+          <div class="flex max-w-[85%] md:max-w-[70%] ${isBot ? 'flex-row' : 'flex-row-reverse'}">
+            <div class="flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center ${isBot ? 'bg-blue-600 mr-3' : 'bg-slate-700 ml-3'}">
+               ${isBot 
+                 ? '<svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>' 
+                 : '<svg class="h-6 w-6 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>'
+               }
+            </div>
+            <div class="flex flex-col ${isBot ? 'items-start' : 'items-end'}">
+              <div class="px-5 py-3 rounded-2xl text-sm md:text-base shadow-md ${isBot ? 'bg-slate-800 text-slate-100 rounded-tl-none border border-slate-700' : 'bg-blue-600 text-white rounded-tr-none'}">
+                 ${formattedText}
+              </div>
+            </div>
+          </div>
+        `;
+        chatContainer.appendChild(div);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+
+      // --- LOGIQUE INTELLIGENCE ARTIFICIELLE ---
+
+      const SYSTEM_INSTRUCTION = `
+        Tu es l'assistant commercial virtuel de "Digicode Studio" au Sénégal.
+        
+        OBJECTIF : Vendre une chanson personnalisée à 2500 FCFA.
+        
+        RÈGLES D'OR DE LA CONVERSATION :
+        1. Tes messages doivent être COURTS et LISIBLES.
+        2. Pose UNE SEULE question à la fois.
+        3. Ne donne PAS le numéro de paiement tout de suite.
+        4. Ton ton est cool, jeune et sénégalais ("Frère", "Nakh", "Galsen", "T'inquiète").
+
+        DÉROULEMENT OBLIGATOIRE (étape par étape) :
+        1. Demande le STYLE de musique (Rap, Mbalax, Love, Afrobeat...).
+        2. Une fois que le client a répondu, demande le THÈME ou le sujet de la chanson.
+        3. Ensuite, demande les NOMS ou DÉTAILS spécifiques à citer dans le son.
+        4. Une fois que tu as toutes les infos, demande : "C'est 2500 FCFA. Est-ce que tu es prêt à payer par Wave ou Orange Money ?"
+        5. SI LE CLIENT DIT OUI : Donne le numéro +221 77 726 94 84.
+        
+        Une fois le numéro donné, génère ce résumé :
+        --- RÉSUMÉ COMMANDE ---
+        Style : [Style]
+        Thème : [Thème]
+        Détails : [Infos]
+        -----------------------
+        
+        Termine par : "Clique sur le bouton vert 'Envoyer sur WhatsApp' ci-dessous pour m'envoyer la preuve de paiement !"
+      `;
+
+      window.handleSend = async () => {
+        const chatInput = document.getElementById('chat-input');
+        const chatContainer = document.getElementById('chat-container');
+        const text = chatInput.value.trim();
+        
+        if (!text || isProcessing) return;
+
+        chatInput.value = '';
+        addMessage("user", text);
+        isProcessing = true;
+        
+        // Indicateur de chargement
+        const loadingDiv = document.createElement('div');
+        loadingDiv.id = 'loading-indicator';
+        loadingDiv.className = 'flex items-center space-x-2 text-pink-400 ml-12 mb-4 animate-pulse';
+        loadingDiv.innerHTML = '<span class="text-sm font-medium">Digicode réfléchit...</span>';
+        chatContainer.appendChild(loadingDiv);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+
+        try {
+          if (!API_KEY || API_KEY.includes("VOTRE_CLE")) {
+              throw new Error("API_KEY_MISSING");
+          }
+
+          const ai = new GoogleGenAI({ apiKey: API_KEY });
+
+          if (!chatSession) {
+             chatSession = ai.chats.create({
+                model: 'gemini-2.5-flash',
+                config: { systemInstruction: SYSTEM_INSTRUCTION }
+             });
+          }
+
+          const result = await chatSession.sendMessageStream({ message: text });
+          
+          let fullResponse = "";
+          loadingDiv.remove();
+          
+          // Container message bot
+          messageHistory.push({ role: 'model', text: '' });
+          const historyIndex = messageHistory.length - 1;
+          
+          const div = document.createElement('div');
+          div.className = `flex w-full justify-start mb-6`;
+          chatContainer.appendChild(div);
+          
+          for await (const chunk of result) {
+            const chunkText = chunk.text || "";
+            fullResponse += chunkText;
+            messageHistory[historyIndex].text = fullResponse;
+            
+            let formatted = fullResponse
+               .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+               .replace(/\n/g, '<br>');
+            
+            div.innerHTML = `
+               <div class="flex max-w-[85%] md:max-w-[70%] flex-row">
+                 <div class="flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center bg-blue-600 mr-3">
+                    <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                 </div>
+                 <div class="flex flex-col items-start">
+                   <div class="px-5 py-3 rounded-2xl text-sm md:text-base shadow-md bg-slate-800 text-slate-100 rounded-tl-none border border-slate-700">
+                      ${formatted}
+                   </div>
+                 </div>
+               </div>
+            `;
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+          }
+        } catch (e) {
+          console.error(e);
+          document.getElementById('loading-indicator')?.remove();
+          
+          if (e.message === "API_KEY_MISSING") {
+              addMessage("model", "⚠️ **CLÉ API MANQUANTE** <br><br>Vérifiez le code.");
+          } else {
+              addMessage("model", "Oups, petit souci de connexion. Réessaie !");
+          }
+        } finally {
+          isProcessing = false;
+        }
+      };
+
+      // Entrée clavier
+      document.getElementById('chat-input').addEventListener('keydown', (e) => {
+        if(e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          window.handleSend();
+        }
+      });
+
+      // --- INTEGRATIONS EXTERNES ---
+
+      window.sendToWhatsApp = () => {
+         const lastBotMsg = messageHistory.filter(m => m.role === 'model').pop()?.text || "";
+         let body = "Salut Digicode, voici ma commande :\n\n";
+         
+         if (lastBotMsg.includes("--- RÉSUMÉ COMMANDE ---")) {
+            body += lastBotMsg;
+         } else {
+            messageHistory.slice(-4).forEach(m => {
+               body += `[${m.role === 'user' ? 'Moi' : 'Bot'}] : ${m.text}\n`;
+            });
+         }
+         body += "\n\n(Preuve de paiement ci-jointe)";
+         window.open(`https://wa.me/221777269484?text=${encodeURIComponent(body)}`, '_blank');
+      };
+
+      window.sendToEmail = () => {
+         const lastBotMsg = messageHistory.filter(m => m.role === 'model').pop()?.text || "";
+         const body = `Commande Chanson 2500F\n\n${lastBotMsg}`;
+         window.open(`mailto:digicode242@gmail.com?subject=Commande Chanson&body=${encodeURIComponent(body)}`, '_blank');
+      };
+      
+    </script>
+  </body>
 </html>
